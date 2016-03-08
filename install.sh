@@ -8,6 +8,8 @@ SY_VERSION="0.0.1"
 
 echo "SYpanel $SY_VERSION";
 
+command -v apt-get >/dev/null 2>&1 || { echo "I require apt-get but it's not installed.  Aborting." >&2; exit 1; }
+
 echo "Updating reposetories"
 
 apt-get update -qq -y --force-yes
@@ -18,16 +20,16 @@ apt-get install lsb-release -qq -y --force-yes
 OS_NAME=$(lsb_release -si)
 
 if [ ${OS_NAME,,} != 'debian' ]; then
- echo "SYpanel must be installed on Debian only!";
+ echo "SYpanel currently works on Debian only!";
  exit;
 fi
 echo "Upgrading packages"
 
 apt-get upgrade -qq -y --force-yes
 
-echo "Installing nesecery packages"
+echo "Installing necessary packages"
 
-apt-get install git unzip curl --force-yes -qq -y
+apt-get install wget git unzip curl --force-yes -qq -y
 
 CODENAME=$(grep "VERSION=" /etc/os-release |awk -F= {' print $2'}|sed s/\"//g |sed s/[0-9]//g | sed s/\)$//g |sed s/\(//g)
 
@@ -43,7 +45,7 @@ _PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 echo mysql-server mysql-server/root_password password $_PASSWORD | sudo debconf-set-selections
 echo mysql-server mysql-server/root_password_again password $_PASSWORD | sudo debconf-set-selections
 echo "MySQL root password is $_PASSWORD"
-
+echo $_PASSWORD > ~/.my.cnf
 apt-get install --force-yes -y -qq mariadb-server-10.0
 apt-get install --force-yes -y -qq bind9
 
@@ -60,10 +62,20 @@ apt-get remove --purge --force-yes -y -qq exim4
 
 apt-get install --force-yes -y -qq postfix 
 apt-get install --force-yes -y -qq dovecot-core dovecot-imapd dovecot-mysql dovecot-pop3d #dovecot-antispam
+
 #install SYpanel
 mkdir /usr/share/sypanel && cd /usr/share/sypanel
 
 wget https://github.com/SYpanel/SYpanel/archive/master.zip
 unzip master.zip
 
+cd ~
+
+# setup skel
+mkdir /etc/skel/public_html
+mkdir /etc/skel/tmp
+mkdir /etc/skel/ssl
+mkdir /etc/skel/log
+cd /etc/skel
+ln -s public_html/ www
 cd ~
