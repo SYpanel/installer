@@ -29,7 +29,7 @@ apt-get upgrade -qq -y --force-yes
 
 echo "Installing necessary packages"
 
-apt-get install wget git unzip curl --force-yes -qq -y
+apt-get install wget sed git unzip curl --force-yes -qq -y
 
 CODENAME=$(grep "VERSION=" /etc/os-release |awk -F= {' print $2'}|sed s/\"//g |sed s/[0-9]//g | sed s/\)$//g |sed s/\(//g)
 
@@ -57,6 +57,8 @@ unset DEBIAN_FRONTEND
 
 apt-get install --force-yes -y -qq php5-fpm php5-cli php5-gd php5-curl php5-json php5-mcrypt
 
+# fix cgi.fix_pathinfo
+sed -i -- 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g' /etc/php5/fpm/php.ini
 
 apt-get remove --purge --force-yes -y -qq exim4
 
