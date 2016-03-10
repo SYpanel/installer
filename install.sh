@@ -98,6 +98,7 @@ git clone https://github.com/SYpanel/SYpanel.git .
 
 wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/.env" -O /home/sypanel/public_html/.env
 sed -i -- 's/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g' .env
+php artisan key:generate
 cd ~
 
 chown -R sypanel:sypanel /home/sypanel
