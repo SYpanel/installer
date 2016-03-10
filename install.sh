@@ -83,16 +83,44 @@ unset _PASSWORD
 printf "\n\n#SYpanel user\nsypanel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Download SYpanel GUI
-##TOFIX-THINK
+##TOFIX
 cd /home/sypanel/public_html
-
-wget https://github.com/SYpanel/SYpanel/archive/master.zip
-unzip master.zip
-
+rm -rf *
+git clone https://github.com/SYpanel/SYpanel.git .
 cd ~
 
 # Create fpm pool for sypanel
 ##TODO
 
+# Remove default nginx server
+rm -rf /etc/nginx/conf.d/default.conf
+service nginx reload
+
 # Create nginx conf for sypanel
-##TODO
+read -d '' NGINX_CONF << EOF
+server {
+    listen 8096 default_server;
+
+    root /home/sypanel/public_html/public;
+    index index.php index.html index.htm;
+
+    server_name localhost;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        try_files $uri /index.php =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+EOF
+
+echo "$NGINX_CONF" > /etc/nginx/conf.d/sypanel.conf
+
+service nginx reload
