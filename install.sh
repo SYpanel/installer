@@ -4,7 +4,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # SYpanel installer
-SY_VERSION="0.0.3"
+SY_VERSION="0.0.4"
 
 echo "SYpanel $SY_VERSION";
 
