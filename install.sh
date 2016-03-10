@@ -89,40 +89,18 @@ rm -rf *
 git clone https://github.com/SYpanel/SYpanel.git .
 cd ~
 
-# Create fpm pool for sypanel
-##TODO
+# Remove default pool
+mv /etc/php5/fpm/pool.d/www.conf /etc/php5/fpm/pool.d/www.bak
+
+# Fetch fpm pool for sypanel
+wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/sypanel.conf" -O /etc/php5/fpm/pool.d/sypanel.conf
+
+service php5-fpm reload
 
 # Remove default nginx server
-rm -rf /etc/nginx/conf.d/default.conf
-service nginx reload
+mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.bak
 
-# Create nginx conf for sypanel
-read -d '' NGINX_CONF << EOF
-server {
-    listen 8096 default_server;
-
-    root /home/sypanel/public_html/public;
-    index index.php index.html index.htm;
-
-    server_name localhost;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        try_files $uri /index.php =404;
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass 127.0.0.1:9000;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-EOF
-
-echo "$NGINX_CONF" > /etc/nginx/conf.d/sypanel.conf
-
-unset NGINX_CONF
+# Fetch nginx conf for sypanel
+wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/nginx.conf" -O /etc/nginx/sypanel.conf
 
 service nginx reload
