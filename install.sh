@@ -123,4 +123,6 @@ EOF
 
 echo "$NGINX_CONF" > /etc/nginx/conf.d/sypanel.conf
 
+unset NGINX_CONF
+
 service nginx reload
