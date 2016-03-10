@@ -4,7 +4,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # SYpanel installer
-SY_VERSION="0.0.4"
+SY_VERSION="0.0.5"
 
 echo "SYpanel $SY_VERSION";
 
@@ -52,7 +52,7 @@ apt-get install --force-yes -y bind9
 
 # Create sypanel mysql user and db
 _PASSWORD_DB=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
-mysql -uroot -p"$_PASSWORD" -e "CREATE DATABASE sypanel;GRANT ALL PRIVILEGES ON sypanel.* TO sypanel@localhost IDENTIFIED BY 'n$_PASSWORD_DB'";
+mysql -uroot -p"$_PASSWORD" -e "CREATE DATABASE sypanel;GRANT ALL PRIVILEGES ON sypanel.* TO sypanel@localhost IDENTIFIED BY '$_PASSWORD_DB'";
 
 # Clearing
 unset _PASSWORD
@@ -60,7 +60,7 @@ unset DEBIAN_FRONTEND
 
 # Finally install PHP
 
-apt-get install --force-yes -y php5-fpm php5-cli php5-gd php5-curl php5-json php5-mcrypt
+apt-get install --force-yes -y php5-fpm php5-cli php5-gd php5-curl php5-json php5-mcrypt php5-mysql
 
 # Fix cgi.fix_pathinfo
 sed -i -- 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g' /etc/php5/fpm/php.ini
@@ -97,7 +97,9 @@ rm -rf *
 git clone https://github.com/SYpanel/SYpanel.git .
 
 wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/.env" -O /home/sypanel/public_html/.env
-sed -i -- 's/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g' .env
+sed -i -- "s/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g" .env
+unset _PASSWORD_DB
+
 php artisan key:generate
 php artisan migrate
 cd ~
@@ -110,7 +112,7 @@ find /home/sypanel/www -type f -exec chmod 0644 {} \;
 mv /etc/php5/fpm/pool.d/www.conf /etc/php5/fpm/pool.d/www.bak
 
 # Fetch fpm pool for sypanel
-wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/sypanel.conf" -O /etc/php5/fpm/pool.d/sypanel.conf
+wget --no-check-certificate "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/sypanel.conf" -O /etc/php5/fpm/pool.d/sypanel.conf
 
 service php5-fpm reload
 
@@ -118,6 +120,15 @@ service php5-fpm reload
 mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.bak
 
 # Fetch nginx conf for sypanel
-wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/nginx.conf" -O /etc/nginx/conf.d/sypanel.conf
+wget --no-check-certificate "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/nginx.conf" -O /etc/nginx/conf.d/sypanel.conf
 
 service nginx reload
+
+# Done, Reboot?
+echo "SYpanel $SY_VERSION has been installed successfully, it is recommended that you reboot your system"
+read -p "Reboot now? [Y/n]" -n 1 -r
+echo    # (optional) move to a new line
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    reboot
+fi
