@@ -4,7 +4,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # SYpanel installer
-SY_VERSION="0.0.5"
+SY_VERSION="0.0.6"
 
 echo "SYpanel $SY_VERSION";
 
@@ -85,10 +85,12 @@ cd ~
 # Create SYpanel user
 _PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 useradd -d /home/sypanel -m -s /bin/bash -p $_PASSWORD sypanel
-unset _PASSWORD
 
 # Allow SYpanel user to sudo without password
 printf "\n\n#SYpanel user\nsypanel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Allow sypanel user to ssh from 127.0.0.1 with password
+printf "\n\n#SYpanel user\nMatch User sypanel\n\tAllowUsers sypanel@127.0.0.1\n\tPasswordAuthentication yes" >> /etc/ssh/sshd_config
 
 # Download SYpanel GUI
 ##TOFIX
@@ -98,6 +100,9 @@ git clone https://github.com/SYpanel/SYpanel.git .
 
 wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/.env" -O /home/sypanel/public_html/.env
 sed -i -- "s/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g" .env
+printf "\n\nSYPANEL_SECRET=$_PASSWORD" >> .env
+
+unset _PASSWORD
 unset _PASSWORD_DB
 
 php artisan key:generate
