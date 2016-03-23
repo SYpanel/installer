@@ -1,13 +1,18 @@
 #!/bin/bash
 
+##############################################
+#	SYpanel instellation script				 #
+##############################################
+
 # Ignore the post install questions
 export DEBIAN_FRONTEND=noninteractive
 
 # SYpanel installer
-SY_VERSION="0.0.6"
+SY_VERSION="0.0.7"
 
 echo "SYpanel $SY_VERSION";
 
+# Check if we have apt-get
 command -v apt-get >/dev/null 2>&1 || { echo "I require apt-get but it's not installed.  Aborting." >&2; exit 1; }
 
 echo "Updating reposetories"
@@ -29,7 +34,7 @@ apt-get upgrade -y --force-yes
 
 echo "Installing necessary packages"
 
-apt-get install wget sudo sed git unzip curl --force-yes -y
+apt-get install wget whois sudo sed git unzip curl --force-yes -y
 
 CODENAME=$(grep "VERSION=" /etc/os-release |awk -F= {' print $2'}|sed s/\"//g |sed s/[0-9]//g | sed s/\)$//g |sed s/\(//g)
 
@@ -59,14 +64,15 @@ unset _PASSWORD
 unset DEBIAN_FRONTEND
 
 # Finally install PHP
-
 apt-get install --force-yes -y php5-fpm php5-cli php5-gd php5-curl php5-json php5-mcrypt php5-mysql
 
 # Fix cgi.fix_pathinfo
 sed -i -- 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g' /etc/php5/fpm/php.ini
 
+# Remove Exim
 apt-get remove --purge --force-yes -y exim4
 
+# Install postfix and dovecot
 debconf-set-selections <<< "postfix postfix/mailname string sypanel"
 debconf-set-selections <<< "postfix postfix/main_mailer_type string 'No configuration'"
 
@@ -83,14 +89,11 @@ ln -s public_html/ www
 cd ~
 
 # Create SYpanel user
-_PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+_PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 useradd -d /home/sypanel -m -s /bin/bash -p $_PASSWORD sypanel
 
 # Allow SYpanel user to sudo without password
 printf "\n\n#SYpanel user\nsypanel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Allow sypanel user to ssh from 127.0.0.1 with password
-printf "\n\n#SYpanel user\nMatch User sypanel\n\tAllowUsers sypanel@127.0.0.1\n\tPasswordAuthentication yes" >> /etc/ssh/sshd_config
 
 # Download SYpanel GUI
 ##TOFIX
@@ -102,7 +105,6 @@ wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/instal
 sed -i -- "s/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g" .env
 printf "\n\nSYPANEL_SECRET=$_PASSWORD" >> .env
 
-unset _PASSWORD
 unset _PASSWORD_DB
 
 php artisan key:generate
@@ -129,11 +131,10 @@ wget --no-check-certificate "https://raw.githubusercontent.com/SYpanel/installer
 
 service nginx reload
 
-# Done, Reboot?
-echo "SYpanel $SY_VERSION has been installed successfully, it is recommended that you reboot your system"
-read -p "Reboot now? [Y/n]" -n 1 -r
-echo    # (optional) move to a new line
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
-    reboot
-fi
+# Done
+IP_ADDR=$(ifconfig  | grep 'inet addr:' | grep -v '127.0.0.1' | awk -F: '{print $2}' | awk '{print $1}' | head -1)
+echo "SYpanel was installed successfuly"
+echo "You can access it at http://$IP_ADDR:8096"
+echo "Username: sypanel Password: $_PASSWORD";
+
+unset _PASSWORD
