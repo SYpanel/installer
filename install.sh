@@ -8,7 +8,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # SYpanel installer
-SY_VERSION="0.0.7"
+SY_VERSION="0.0.8"
 
 echo "SYpanel $SY_VERSION";
 
@@ -103,7 +103,7 @@ git clone https://github.com/SYpanel/SYpanel.git .
 
 wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/.env" -O /home/sypanel/public_html/.env
 sed -i -- "s/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g" .env
-printf "\n\nSYPANEL_SECRET=$_PASSWORD" >> .env
+# printf "\n\nSYPANEL_SECRET=$_PASSWORD" >> .env
 
 unset _PASSWORD_DB
 
