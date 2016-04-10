@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ##############################################
 #	SYpanel instellation script				 #
 ##############################################
@@ -8,7 +7,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # SYpanel installer
-SY_VERSION="0.0.8"
+SY_VERSION="0.0.9"
 
 echo "SYpanel $SY_VERSION";
 
@@ -51,7 +50,7 @@ sudo debconf-set-selections <<< "mariadb-server-10.0 mysql-server/root_password 
 sudo debconf-set-selections <<< "mariadb-server-10.0 mysql-server/root_password_again password $_PASSWORD"
 
 echo "MySQL root password is $_PASSWORD the password is in ~/.mysql_pass"
-echo $_PASSWORD > ~/.mysql_pass
+echo $_PASSWORD_DB > ~/.mysql_pass
 apt-get install --force-yes -y mariadb-server-10.0
 apt-get install --force-yes -y bind9
 
@@ -90,30 +89,38 @@ cd ~
 
 # Create SYpanel user
 _PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
-useradd -d /home/sypanel -m -s /bin/bash -p $_PASSWORD sypanel
+_PASSWORD_ENC=$(mkpasswd -m sha-512 $_PASSWORD)
+useradd -d /opt/sypanel -m -s /bin/bash -p $_PASSWORD_ENC sypanel
 
 # Allow SYpanel user to sudo without password
 printf "\n\n#SYpanel user\nsypanel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Download SYpanel GUI
-##TOFIX
-cd /home/sypanel/public_html
+
+# Install SYM
+cd /opt/sypanel/public_html/SYM
 rm -rf *
-git clone https://github.com/SYpanel/SYpanel.git .
+git clone https://github.com/SYpanel/SYM.git .
 
-wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/.env" -O /home/sypanel/public_html/.env
+wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/.env" -O /opt/sypanel/public_html/SYM/.env
 sed -i -- "s/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g" .env
-# printf "\n\nSYPANEL_SECRET=$_PASSWORD" >> .env
-
-unset _PASSWORD_DB
 
 php artisan key:generate
 php artisan migrate
 cd ~
 
-chown -R sypanel:sypanel /home/sypanel
-find /home/sypanel/www -type d -exec chmod 0755 {} \;
-find /home/sypanel/www -type f -exec chmod 0644 {} \;
+# Install SYpanel
+cd /opt/sypanel/public_html/SYpanel
+rm -rf *
+git clone https://github.com/SYpanel/SYpanel.git .
+cp /opt/sypanel/public_html/SYM/.env /opt/sypanel/public_html/SYM/.env
+
+unset _PASSWORD_DB
+cd ~
+
+chown -R sypanel:sypanel /opt/sypanel
+find /opt/sypanel/public_html -type d -exec chmod 0755 {} \;
+find /opt/sypanel/public_html -type f -exec chmod 0644 {} \;
 
 # Remove default pool
 mv /etc/php5/fpm/pool.d/www.conf /etc/php5/fpm/pool.d/www.bak
