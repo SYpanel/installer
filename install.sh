@@ -7,7 +7,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # SYpanel installer
-SY_VERSION="0.0.9"
+SY_VERSION="0.0.10"
 
 echo "SYpanel $SY_VERSION";
 
@@ -50,7 +50,7 @@ sudo debconf-set-selections <<< "mariadb-server-10.0 mysql-server/root_password 
 sudo debconf-set-selections <<< "mariadb-server-10.0 mysql-server/root_password_again password $_PASSWORD"
 
 echo "MySQL root password is $_PASSWORD the password is in ~/.mysql_pass"
-echo $_PASSWORD_DB > ~/.mysql_pass
+echo $_PASSWORD > ~/.mysql_pass
 apt-get install --force-yes -y mariadb-server-10.0
 apt-get install --force-yes -y bind9
 
@@ -85,6 +85,8 @@ mkdir /etc/skel/ssl
 mkdir /etc/skel/log
 cd /etc/skel
 ln -s public_html/ www
+echo "<?php" > /etc/skel/public_html/index.php;
+echo "echo 'Your SYpanel account has been setup.';" >> /etc/skel/public_html/index.php
 cd ~
 
 # Create SYpanel user
@@ -98,6 +100,7 @@ printf "\n\n#SYpanel user\nsypanel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 # Download SYpanel GUI
 
 # Install SYM
+mkdir /opt/sypanel/public_html/SYM
 cd /opt/sypanel/public_html/SYM
 rm -rf *
 git clone https://github.com/SYpanel/SYM.git .
@@ -105,15 +108,20 @@ git clone https://github.com/SYpanel/SYM.git .
 wget --no-check-certificate -q "https://raw.githubusercontent.com/SYpanel/installer/$SY_VERSION/.env" -O /opt/sypanel/public_html/SYM/.env
 sed -i -- "s/DB_PASSWORD=secret/DB_PASSWORD=$_PASSWORD_DB/g" .env
 
+chown -R sypanel:sypanel /opt/sypanel
+find /opt/sypanel/public_html -type d -exec chmod 0755 {} \;
+find /opt/sypanel/public_html -type f -exec chmod 0644 {} \;
+
 php artisan key:generate
 php artisan migrate
 cd ~
 
 # Install SYpanel
+mkdir /opt/sypanel/public_html/SYpanel
 cd /opt/sypanel/public_html/SYpanel
 rm -rf *
 git clone https://github.com/SYpanel/SYpanel.git .
-cp /opt/sypanel/public_html/SYM/.env /opt/sypanel/public_html/SYM/.env
+cp /opt/sypanel/public_html/SYM/.env /opt/sypanel/public_html/SYpanel/.env
 
 unset _PASSWORD_DB
 cd ~
